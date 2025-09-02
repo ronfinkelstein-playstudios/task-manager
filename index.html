@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משימות הבוקר של נגה</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 20px;
+            text-align: center;
+            color: #333;
+        }
+        
+        .date-time {
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        
+        .tasks-container {
+            padding: 20px;
+        }
+        
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .task-item.completed {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        
+        .task-text {
+            font-size: 18px;
+            flex-grow: 1;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        .toggle-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .task-item.completed .toggle-btn {
+            background: #28a745;
+        }
+        
+        .toggle-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .progress {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Celebration popup */
+        .celebration-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .celebration-popup.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .celebration-text {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 5px #000;
+            animation: bounceIn 1s forwards;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .heart-icon {
+            font-size: 2.5rem;
+            animation: bounceIn 1s forwards;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.1); opacity: 0; }
+            60% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="celebration-popup" id="celebration-popup">
+        <h2 class="celebration-text">כל הכבוד! סיימת את כל המשימות. בהצלחה בהמשך היום</h2>
+        <div class="heart-icon">❤️</div>
+        <canvas id="fireworks-canvas"></canvas>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="date-time" id="dateTime"></div>
+            <div class="title">☀️ בוקר טוב, נגה</div>
+            <div class="subtitle">מוזמנת לסמן את המשימות של הבוקר</div>
+        </div>
+        
+        <div class="tasks-container" id="tasks-list">
+            <div class="progress">
+                <div id="progressText">הושלמו 0 מתוך 12 משימות</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div class="task-item" data-task="להתלבש">
+                <div class="task-text">👕 להתלבש</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+            
+            <div class="task-item" data-task="ללכת לשירותים">
+                <div class="task-text">🚽 ללכת לשירותים</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+            
+            <div class="task-item" data-task="לשטוף פנים">
+                <div class="task-text">💧 לשטוף פנים</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+
+            <div class="task-item" data-task="למרוח קרם פנים">
+                <div class="task-text">🧖‍♀️ למרוח קרם פנים</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+
+            <div class="task-item" data-task="למרוח קרם הגנה">
+                <div class="task-text">🧴 למרוח קרם הגנה</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+
+            <div class="task-item" data-task="לשים דאודורנט">
+                <div class="task-text">✨ לשים דאודורנט</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+            
+            <div class="task-item" data-task="לצחצח שיניים">
+                <div class="task-text">🦷 לצחצח שיניים</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+            
+            <div class="task-item" data-task="לקחת תרופה">
+                <div class="task-text">💊 לקחת תרופה</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+            
+            <div class="task-item" data-task="לאכול">
+                <div class="task-text">🍎 לאכול</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+            
+            <div class="task-item" data-task="להכניס טלפון ומפתח לתיק">
+                <div class="task-text">📱🔑 להכניס טלפון ומפתח לתיק</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+            
+            <div class="task-item" data-task="לגרוב גרביים ולנעול נעליים">
+                <div class="task-text">🧦👟 לגרוב גרביים ולנעול נעליים</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+            
+            <div class="task-item" data-task="להסתרק ולאסוף שיער">
+                <div class="task-text">💇‍♀️ להסתרק ולאסוף שיער</div>
+                <button class="toggle-btn">לא סיימתי</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const celebrationPopup = document.getElementById('celebration-popup');
+        const canvas = document.getElementById('fireworks-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let runningFireworks = false;
+
+        function setCanvasSize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = (Math.random() - 0.5) * 10;
+                this.alpha = 1;
+                this.gravity = 0.05;
+            }
+
+            update() {
+                this.vy += this.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= 0.01;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        function createFireworks(x, y) {
+            const colors = ['255, 0, 0', '255, 255, 0', '0, 255, 255', '255, 105, 180', '0, 255, 0'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const particleCount = 100;
+
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function animateFireworks() {
+            if (!runningFireworks) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            requestAnimationFrame(animateFireworks);
+        }
+
+        function triggerCelebration() {
+            runningFireworks = true;
+            celebrationPopup.classList.add('active');
+            setCanvasSize();
+
+            const popInterval = setInterval(() => {
+                if (!runningFireworks) {
+                    clearInterval(popInterval);
+                    return;
+                }
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height * 0.7;
+                createFireworks(x, y);
+            }, 300);
+
+            animateFireworks();
+
+            setTimeout(() => {
+                runningFireworks = false;
+                clearInterval(popInterval);
+                celebrationPopup.classList.remove('active');
+                particles = [];
+            }, 5000);
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const date = now.toLocaleDateString('he-IL', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            const time = now.toLocaleTimeString('he-IL', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            document.getElementById('dateTime').textContent = `${date} | ${time}`;
+        }
+
+        function updateProgress() {
+            const tasks = document.querySelectorAll('.task-item');
+            const completedTasks = document.querySelectorAll('.task-item.completed');
+            const total = tasks.length;
+            const completed = completedTasks.length;
+            const percentage = (completed / total) * 100;
+            
+            document.getElementById('progressText').textContent = `הושלמו ${completed} מתוך ${total} משימות`;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+
+            if (completed === total && !runningFireworks) {
+                triggerCelebration();
+            }
+        }
+
+        function loadTaskStates() {
+            const savedDate = localStorage.getItem('taskDate');
+            const today = new Date().toDateString();
+            
+            if (savedDate !== today) {
+                localStorage.clear();
+                localStorage.setItem('taskDate', today);
+                return;
+            }
+            
+            const tasks = document.querySelectorAll('.task-item');
+            tasks.forEach(task => {
+                const taskName = task.dataset.task;
+                const isCompleted = localStorage.getItem(taskName) === 'completed';
+                if (isCompleted) {
+                    task.classList.add('completed');
+                    task.querySelector('.toggle-btn').textContent = 'סיימתי';
+                }
+            });
+            updateProgress();
+        }
+
+        function saveTaskState(taskName, isCompleted) {
+            if (isCompleted) {
+                localStorage.setItem(taskName, 'completed');
+            } else {
+                localStorage.removeItem(taskName);
+            }
+        }
+
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+        loadTaskStates();
+
+        document.querySelectorAll('.toggle-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const taskItem = this.parentElement;
+                const taskName = taskItem.dataset.task;
+                const isCompleted = taskItem.classList.contains('completed');
+                
+                if (isCompleted) {
+                    taskItem.classList.remove('completed');
+                    this.textContent = 'לא סיימתי';
+                    saveTaskState(taskName, false);
+                } else {
+                    taskItem.classList.add('completed');
+                    this.textContent = 'סיימתי';
+                    saveTaskState(taskName, true);
+                }
+                
+                updateProgress();
+            });
+        });
+
+        function checkMidnightReset() {
+            const savedDate = localStorage.getItem('taskDate');
+            const today = new Date().toDateString();
+            
+            if (savedDate !== today) {
+                document.querySelectorAll('.task-item').forEach(task => {
+                    task.classList.remove('completed');
+                    task.querySelector('.toggle-btn').textContent = 'לא סיימתי';
+                });
+                
+                localStorage.clear();
+                localStorage.setItem('taskDate', today);
+                updateProgress();
+            }
+        }
+
+        setInterval(checkMidnightReset, 60000);
+        window.addEventListener('resize', setCanvasSize);
+    </script>
+</body>
+</html>
